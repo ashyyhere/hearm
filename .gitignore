@@ -1,0 +1,32 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.pdb
+*.log
+TestResults/
+publish/
+
+# Android / Gradle
+**/.gradle/
+**/build/
+**/local.properties
+**/*.iml
+.idea/
+
+# Generated Android packages and local build copies
+*.apk
+*.aab
+
+# Editor and operating system files
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Leftover local development artifacts
+node_modules/
+shared-audio/
