@@ -1,112 +1,92 @@
-# Hearm
+<p align="center">
+  <img src="docs/images/hearm-logo.svg" width="230" alt="Hearm logo" />
+</p>
 
-**Send the audio playing on a Windows laptop to an Android phone over the same Wi-Fi.** Keep your earbuds connected to the phone; laptop audio arrives there alongside audio from phone apps.
+<p align="center">
+  <strong>Windows audio in your Android earbuds.</strong><br />
+  Stream the laptop's output mix to your phone over Wi-Fi.
+</p>
 
-> Hearm is a local-network prototype. It captures the Windows output mix, streams it to Android, and plays it through the phone's audio output.
+<p align="center">Made by ashyy &lt;3</p>
 
 ## How it works
 
-![Hearm audio flow: Windows system audio streams over Wi-Fi to the Android output, where local phone apps also play](docs/images/hearm-architecture.png)
+Laptop audio is captured once and mirrored to Android. Phone apps keep playing locally, so both sources reach the phone's audio output.
 
-The diagram uses [Excalifont](https://github.com/excalidraw/excalidraw/tree/master/packages/excalidraw/fonts/Excalifont), the hand-drawn typeface used by Excalidraw.
-
-## What it does
-
-- Captures the Windows default playback mix, including audio from multiple apps.
-- Sends mono PCM audio over a WebSocket on your local Wi-Fi.
-- Finds the Windows computer from Android with **Find nearby laptops**; tap its name to connect.
-- Keeps Android apps playing locally through the phone's normal output.
-- Provides manual pairing with the Windows address and pairing code if network discovery is blocked.
+![Hearm audio flow: Windows system audio streams over Wi-Fi to Android, where local phone apps also play](docs/images/hearm-architecture.png)
 
 ## Quick start
 
-### 1. Start the Windows sender
+1. Install the [.NET 11 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/11.0).
+2. In PowerShell, run the Windows sender:
 
-Install the [.NET 11 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), then run PowerShell from the project folder:
+   ```powershell
+   dotnet run --project .\windows\Hearm.Windows.csproj
+   ```
 
-```powershell
-dotnet run --project .\windows\Hearm.Windows.csproj
-```
+3. Install Hearm on Android using the ready [APK](Hearm-android.apk), or connect the phone by USB and run `powershell -ExecutionPolicy Bypass -File .\install-android.ps1`.
+4. Put both devices on the same Wi-Fi. Click **Start sharing laptop audio** on Windows, then tap **Find nearby laptops** in the Android app and choose your laptop.
 
-Click **Start sharing laptop audio**. If Windows Firewall asks, allow Hearm on private networks.
+If discovery doesn’t find the laptop, enter the address and pairing code shown in the Windows app. Allow Hearm through Windows Firewall on private networks if prompted.
 
-### 2. Install and open Hearm on Android
+<details>
+<summary><strong>Technology</strong></summary>
 
-The Android app can be built and installed without Android Studio. Enable USB debugging, connect the phone to the computer, approve the debugging prompt, then run:
+| Area | Technology | Role |
+| --- | --- | --- |
+| Windows app | .NET 11, WPF, NAudio | Captures the Windows output mix with WASAPI loopback |
+| Windows network | ASP.NET Core WebSocket, UDP | Streams audio and answers nearby-device scans |
+| Android app | Java, Android SDK, AudioTrack | Plays incoming PCM audio through the phone output |
+| Android network | OkHttp WebSocket, DatagramSocket | Receives audio and discovers the Windows sender |
+| Diagram | Excalifont | Hand-drawn project flow image |
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install-android.ps1
-```
+</details>
 
-If no phone is connected, this command still builds the app and saves `Hearm-android.apk` in the project folder. Transfer that APK to the phone and open it to install.
+<details>
+<summary><strong>Network and audio details</strong></summary>
 
-### 3. Pair over Wi-Fi
-
-Put both devices on the same non-guest Wi-Fi. Open Hearm on Android, tap **Find nearby laptops**, then tap your Windows computer. If discovery does not find it, enter the laptop address and pairing code shown in the Windows app.
-
-Keep the Android app open in the foreground while listening. Background playback is not implemented yet.
-
-## Requirements
-
-| Part | Requirement |
-| --- | --- |
-| Windows sender | Windows 10 or newer, .NET 11 SDK |
-| Android receiver | Android 8.0 (API 26) or newer |
-| Android build/install script | JDK 21 and Android SDK at `%LOCALAPPDATA%\Android\Sdk` |
-| Network | Both devices on the same Wi-Fi / LAN; guest networks or client isolation can block discovery |
-| Firewall | Allow the Windows app on a trusted private network; audio uses TCP 4174 and nearby discovery uses UDP 4175 |
-| Earbuds | Pair them to the Android phone and route phone audio there |
-
-## Project layout
-
-| Path | Purpose |
-| --- | --- |
-| `windows/` | WPF sender, WASAPI loopback capture, WebSocket audio server, UDP discovery responder |
-| `android/` | Android receiver, nearby-device scan, PCM playback, launcher icon |
-| `docs/images/hearm-architecture.png` | Excalifont architecture image showing the audio and discovery flows |
-| `docs/assets/` | Excalifont render assets and SIL Open Font License notice |
-| `install-android.ps1` | Builds the Android APK and installs it when a USB-debugging device is connected |
-| `Hearm-android.apk` | Locally built debug APK; generated by the install script |
-
-## Network and audio flow
-
-| Flow | Protocol | Port | Direction |
+| Flow | Transport | Port | Direction |
 | --- | --- | ---: | --- |
-| Nearby-device discovery | UDP broadcast and unicast reply | 4175 | Android ↔ Windows |
-| Audio transport | WebSocket over TCP | 4174 | Windows → Android |
-| Audio format | 16-bit signed PCM, mono, capture device sample rate | — | Windows → Android |
+| Nearby discovery | UDP broadcast / reply | 4175 | Android ↔ Windows |
+| Audio | WebSocket over TCP | 4174 | Windows → Android |
+| Audio format | 16-bit signed, mono PCM | — | Windows → Android |
 
-The audio stream stays on the local network; Hearm does not upload it to a cloud service. The current prototype uses unencrypted `ws://` on the LAN and a short pairing key. Use it on a trusted network.
+Audio stays on your local network; Hearm has no cloud relay. The connection uses unencrypted `ws://`, so use a trusted Wi-Fi network.
 
-## Limitations
+</details>
 
-- Windows continues playing the source audio through its selected output while Hearm sends a copy to Android. Lowering or muting that output may also change the captured stream, depending on the device.
-- Phone apps continue playing locally; Hearm does not capture or send Android audio back to Windows.
-- The Android app must remain in the foreground for continuous playback.
-- Some apps or protected content may prevent Windows audio capture.
-- Nearby discovery depends on the Wi-Fi allowing local device traffic. Manual address and code entry remains available.
-- The stream is one-way and has no independent mixing or volume control yet.
+<details>
+<summary><strong>Requirements and limitations</strong></summary>
 
-## Troubleshooting
-
-| Symptom | Check |
+| Requirement | Details |
 | --- | --- |
-| Phone cannot connect | Start sharing on Windows first; check both devices are on the same Wi-Fi and re-enter the current address and code. |
-| Nearby scan finds nothing | Avoid guest Wi-Fi, allow Hearm through the Windows private-network firewall, and try manual pairing. |
-| Audio still plays from laptop speakers | This build mirrors the Windows mix. Lower laptop volume carefully; the capture level may follow the Windows output volume. |
-| Android sound stops | Keep Hearm open in the foreground and confirm the phone still has Wi-Fi access. |
-| Android install command reports no device | The APK is still built. Enable USB debugging and approve the computer, or sideload `Hearm-android.apk`. |
+| Windows | Windows 10 or newer; .NET 11 SDK |
+| Android | Android 8.0 (API 26) or newer |
+| Build Android | JDK 21 and Android SDK at `%LOCALAPPDATA%\Android\Sdk` |
+| Network | Same Wi-Fi; guest networks or client isolation can block discovery |
+| Phone playback | Keep Hearm in the foreground; background playback isn’t implemented yet |
 
-## Build commands
+- Windows keeps playing audio locally while Hearm mirrors it to Android. Lowering Windows volume may also lower the captured stream.
+- Phone apps play locally and are not sent back to Windows.
+- Some apps or protected content may prevent Windows capture.
+- If nearby scan finds nothing, check the Windows private-network firewall setting and use manual pairing.
 
-```powershell
-# Windows sender
-dotnet build .\windows\Hearm.Windows.csproj
+</details>
 
-# Android debug APK
-powershell -ExecutionPolicy Bypass -File .\install-android.ps1
-```
+<details>
+<summary><strong>Project files</strong></summary>
+
+| Path | Contents |
+| --- | --- |
+| `windows/` | Windows sender and loopback capture |
+| `android/` | Android receiver, nearby scan, and app icon |
+| `docs/images/` | Hearm logo and Excalifont architecture image |
+| `docs/assets/` | Excalifont source font and license notice |
+| `install-android.ps1` | Builds the APK; installs it if a USB-debugging phone is connected |
+| `LICENSE` | MIT License |
+
+</details>
 
 ## License
 
-No license has been selected yet. Ask the project owner before redistributing or reusing the source.
+[MIT](LICENSE) © 2026 ashyy.
