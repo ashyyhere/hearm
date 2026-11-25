@@ -1,0 +1,1 @@
+<Application x:Class="Hearm.Windows.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" StartupUri="MainWindow.xaml"><Application.Resources><SolidColorBrush x:Key="Green" Color="#607C54"/><SolidColorBrush x:Key="Ink" Color="#222820"/></Application.Resources></Application>
